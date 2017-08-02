@@ -1,0 +1,31 @@
+{
+  "name": "indexeddb-promise",
+  "version": "0.0.3",
+  "description": "",
+  "main": "dist/index.js",
+  "typings": "src/index.js",
+  "scripts": {
+    "start": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haro00/indexeddb-promise.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/haro00/indexeddb-promise/issues"
+  },
+  "homepage": "https://github.com/haro00/indexeddb-promise#readme",
+  "devDependencies": {
+    "babel-cli": "^6.24.0",
+    "babel-core": "^6.24.0",
+    "babel-loader": "^7.0.0",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-env": "^1.4.0",
+    "babel-preset-stage-0": "^6.24.1",
+    "clean-webpack-plugin": "^0.1.15",
+    "webpack": "^3.0.0"
+  }
+}
