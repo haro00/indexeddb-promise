@@ -57,8 +57,11 @@ const db = new IndexedDB('yourDatabaseName');
 * **db.find(store, indexName, start, end)**
 
 > store: 必选. 需要查询数据的objectStore名
+
 > indexName: 必选. 索引名
+
 > start: 可选. 索引的起始值(end传入true)/结束值(end传入false), start为undefined(即不传)查询表中所有数据
+
 > end: 可选. 索引结束值(只查单个索引的key,传入跟start相同的值即可), 默认true
 
 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据(Array)
@@ -68,7 +71,9 @@ const db = new IndexedDB('yourDatabaseName');
 * **db.set(store, val, key)**
 
 > store: 必选. 需要添加/修改数据的objectStore名
+
 > val: 必选. 添加/修改的数据, 如果为数组会遍历该数组, 每个元素作为一条数据进行添加/修改. 如果添加objectStore有指定主键,那么val必须为包含主键属性的对象或数组中每个元素都为为包含主键属性的对象
+
 > key: 如果有指定keyPath, 该值会被忽略, 否则必选. 如果val为对象或数组中元素为对象, 可以是其中的属性名
 
 添加/修改数据, 成功会resolve添加/修改的key
@@ -78,7 +83,9 @@ const db = new IndexedDB('yourDatabaseName');
 删除objectStore中的数据, 成功会resolve('done')
 
 > store: 必选. 需要删除数据的objectStore名
+
 > start: 必选. 主键的值(end不传)/起始值(end传入true)/结束值(end传入false)
+
 > end: 可选. 主键结束值, 默认true
 
 * **db.clear(store)**
