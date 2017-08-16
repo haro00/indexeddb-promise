@@ -1,3 +1,10 @@
+/**
+ * indexedDB的增删改查:
+ *
+ * 1. 所有的数据库操作都是异步的!!!必须处理好异步,否则会造成某一操作的数据库版本过时!!!
+ * 2. 建议耗时的操作在webWorker中进行
+ */
+
 export default class IndexedDB {
 
     constructor(name) {
@@ -101,12 +108,12 @@ export default class IndexedDB {
     /**
      * 创建objectStore, 建议使用索引
      * @param store  必选. 需要创建的objectStore的名字
-     * @param obj  可选. 需要创建objectStore索引时传入,key为字段名,value为boolean表示是否允许重复
+     * @param index  可选. 需要创建objectStore索引时传入,key为字段名,value为boolean表示是否允许重复
      * @param replace  可选. 如果表存在是否先删除再创建, 默认不删除不创建
      * @param keyPath   可选. 主键名, 如果有传入, 那么对应每条数据必须为包含keyPath属性的对象
      * @returns {Promise}
      */
-    addStore(store, obj, replace = false, keyPath = '') {
+    addStore(store, index, replace = false, keyPath = '') {
         return new Promise(async (resolve, reject) => {
             if (!store) {
                 reject(`The first param can't be empty!`)
@@ -122,10 +129,10 @@ export default class IndexedDB {
                     db.deleteObjectStore(store);
                 }
                 let objectStore = keyPath ? db.createObjectStore(store, {keyPath}) : db.createObjectStore(store);
-                if (Object.prototype.toString.call(obj) === '[object Object]') {
-                    for (let key in obj) {
-                        if (obj.hasOwnProperty(key)) {
-                            objectStore.createIndex(key, key, {unique: !!obj[key]});
+                if (Object.prototype.toString.call(index) === '[object Object]') {
+                    for (let key in index) {
+                        if (index.hasOwnProperty(key)) {
+                            objectStore.createIndex(key, key, {unique: !!index[key]});
                         }
                     }
                 }
@@ -215,36 +222,106 @@ export default class IndexedDB {
     }
 
     /**
-     * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据(Array)
+     * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据及其总数
      * 对有建立索引的objectStore, 建议使用游标来查询
      * @param store   必选. 需要查询数据的objectStore名
-     * @param indexName  必选. 索引名
+     * @param index  必选. 索引名
      * @param start  可选. 索引的起始值(end传入true)/结束值(end传入false), start为undefined(即不传)查询表中所有数据
      * @param end  可选. 索引结束值(只查单个索引的key,传入跟start相同的值即可), 默认true
+     * @param page 可选. 页码, Number
+     * @param num 可选. 每页有多少条数据, Number
      * @returns {Promise}
      */
-    find(store, indexName, start, end = true) {
+    find({store, index, start, end = true, page, num = 0}) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readonly');
                 const objectStore = transaction.objectStore(store);
-                const index = objectStore.index(indexName);
-                let request = start === undefined ? index.openCursor() : index.openCursor(this._getRange(start, end));
+                const indexObj = objectStore.index(index);
+                let request = start === undefined ? indexObj.openCursor() : indexObj.openCursor(this._getRange(start, end));
+                let requestCount = start === undefined ? objectStore.count() : objectStore.count(this._getRange(start, end));
+                let list = [];
+                let total = 0;
+                requestCount.onerror = e => {
+                    reject(e.target.error);
+                };
+                requestCount.onsuccess = e => {
+                    total = e.target.result;
+                    if (total <= num * (page - 1)) {
+                        this.close();
+                        resolve({
+                            total,
+                            list: []
+                        });
+                    }
+                };
+                if (typeof page === 'number' && page > 0 && typeof num === 'number' && num > 0) {
+                    let cursorNum = 0;
+                    request.onsuccess = e => {
+                        let cursor = e.target.result;
+                        cursorNum++;
+                        if (cursor && cursorNum <= page * num) {
+                            if (cursorNum > num * (page - 1)) {
+                                list.push(cursor.value);
+                            }
+                            cursor.continue();
+                        } else {
+                            this.close();
+                            resolve({
+                                total,
+                                list
+                            });
+                        }
+                    };
+                } else {
+                    request.onsuccess = e => {
+                        let cursor = e.target.result;
+                        if (cursor) {
+                            list.push(cursor.value);
+                            cursor.continue();
+                        } else {
+                            this.close();
+                            resolve({
+                                total,
+                                list
+                            });
+                        }
+                    };
+                }
+                request.onerror = e => {
+                    reject(e.target.error);
+                };
+            }
+            catch
+                (err) {
+                reject(err);
+            }
+        });
+    }
+
+    /**
+     * 查询objectStore中的数据总条数
+     * @param store
+     * @param start
+     * @param end
+     * @returns {Promise}
+     */
+    count(store, start, end = true) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const db = await this._open(store);
+                const transaction = db.transaction([store], 'readonly');
+                const objectStore = transaction.objectStore(store);
+
+                let request = start === undefined ? objectStore.count() : objectStore.count(this._getRange(start, end));
                 let result = [];
                 request.onerror = e => {
                     reject(e.target.error);
                 };
                 request.onsuccess = e => {
-                    let cursor = e.target.result;
-                    if (cursor) {
-                        result.push(cursor.value);
-                        // 遍历游标
-                        cursor.continue();
-                    } else {
-                        this.close();
-                        resolve(result);
-                    }
+                    this.close();
+                    resolve(e.target.result);
                 };
             } catch (err) {
                 reject(err);
