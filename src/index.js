@@ -182,12 +182,21 @@ export default class IndexedDB {
 
     /**
      * 返回游标范围
-     * @param start  // 索引的起始值(end传入true)/结束值(end传入false)
-     * @param end  // 索引的结束值(只查单个索引的key,传入跟start相同的值即可)
+     * @param start  索引的起始值
+     * @param end  索引的结束值
      * @returns {*}
      * @private
      */
-    _getRange(start, end = true) {
+    _getRange(start, end) {
+        if (typeof start === 'undefined' && typeof end === 'undefined') {
+            return undefined;
+        }
+        if (typeof start !== 'undefined' && typeof end === 'undefined') {
+            return this.IDBKeyRange.upperBound(start);
+        }
+        if (typeof start === 'undefined' && typeof end !== 'undefined') {
+            return this.IDBKeyRange.lowerBound(end);
+        }
         if (typeof end === 'boolean') {
             return end ? this.IDBKeyRange.upperBound(start) : this.IDBKeyRange.lowerBound(start);
         }
@@ -226,21 +235,21 @@ export default class IndexedDB {
      * 对有建立索引的objectStore, 建议使用游标来查询
      * @param store   必选. 需要查询数据的objectStore名
      * @param index  必选. 索引名
-     * @param start  可选. 索引的起始值(end传入true)/结束值(end传入false), start为undefined(即不传)查询表中所有数据
-     * @param end  可选. 索引结束值(只查单个索引的key,传入跟start相同的值即可), 默认true
+     * @param start  可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
+     * @param end  可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start不传即可
      * @param page 可选. 页码, Number
      * @param num 可选. 每页有多少条数据, Number
      * @returns {Promise}
      */
-    find({store, index, start, end = true, page, num = 0}) {
+    find({store, index, start, end, page, num = 0}) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readonly');
                 const objectStore = transaction.objectStore(store);
                 const indexObj = objectStore.index(index);
-                let request = start === undefined ? indexObj.openCursor() : indexObj.openCursor(this._getRange(start, end));
-                let requestCount = start === undefined ? objectStore.count() : objectStore.count(this._getRange(start, end));
+                let request = indexObj.openCursor(this._getRange(start, end));
+                let requestCount = objectStore.count(this._getRange(start, end));
                 let list = [];
                 let total = 0;
                 requestCount.onerror = e => {
@@ -302,19 +311,19 @@ export default class IndexedDB {
 
     /**
      * 查询objectStore中的数据总条数
-     * @param store
-     * @param start
-     * @param end
+     * @param store  必选. 需要查询数据的objectStore名
+     * @param start  可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
+     * @param end  可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start传入undefined或start传入结束值,同时end传入false
      * @returns {Promise}
      */
-    count(store, start, end = true) {
+    count(store, start, end) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readonly');
                 const objectStore = transaction.objectStore(store);
 
-                let request = start === undefined ? objectStore.count() : objectStore.count(this._getRange(start, end));
+                let request = objectStore.count(this._getRange(start, end));
                 let result = [];
                 request.onerror = e => {
                     reject(e.target.error);
@@ -393,7 +402,7 @@ export default class IndexedDB {
      * 删除objectStore中的数据, 成功会resolve('done')
      * @param store  必选. 需要删除数据的objectStore名
      * @param start  必选. 主键的值(end不传)/起始值(end传入true)/结束值(end传入false)
-     * @param end  可选. 主键结束值, 默认true
+     * @param end  可选. 主键结束值
      * @returns {Promise}
      */
     del(store, start, end) {
@@ -402,7 +411,7 @@ export default class IndexedDB {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readwrite');
                 const objectStore = transaction.objectStore(store);
-                let request = end === undefined ? objectStore.delete(start) : objectStore.delete(this._getRange(start, end));
+                let request = typeof end === 'undefined' ? objectStore.delete(start) : objectStore.delete(this._getRange(start, end));
                 request.onsuccess = e => {
                     this.close();
                     resolve(e.target.readyState);
