@@ -231,7 +231,7 @@ export default class IndexedDB {
     }
 
     /**
-     * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据及其总数
+     * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据(Array), 如果查询分页会resolve({total: 总条数, list: 数据})
      * 对有建立索引的objectStore, 建议使用游标来查询
      * @param store   必选. 需要查询数据的objectStore名
      * @param index  必选. 索引名
@@ -250,14 +250,13 @@ export default class IndexedDB {
                 const indexObj = objectStore.index(index);
                 let request = indexObj.openCursor(this._getRange(start, end));
                 let requestCount = objectStore.count(this._getRange(start, end));
-                let list = [];
                 let total = 0;
                 requestCount.onerror = e => {
                     reject(e.target.error);
                 };
                 requestCount.onsuccess = e => {
                     total = e.target.result;
-                    if (total <= num * (page - 1)) {
+                    if (page && total <= num * (Number(page) - 1)) {
                         this.close();
                         resolve({
                             total,
@@ -267,6 +266,7 @@ export default class IndexedDB {
                 };
                 if (typeof page === 'number' && page > 0 && typeof num === 'number' && num > 0) {
                     let cursorNum = 0;
+                    let list = [];
                     request.onsuccess = e => {
                         let cursor = e.target.result;
                         cursorNum++;
@@ -284,6 +284,7 @@ export default class IndexedDB {
                         }
                     };
                 } else {
+                    let list = [];
                     request.onsuccess = e => {
                         let cursor = e.target.result;
                         if (cursor) {
@@ -291,10 +292,7 @@ export default class IndexedDB {
                             cursor.continue();
                         } else {
                             this.close();
-                            resolve({
-                                total,
-                                list
-                            });
+                            resolve(list);
                         }
                     };
                 }

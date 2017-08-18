@@ -1,6 +1,6 @@
 {
   "name": "indexeddb-promise",
-  "version": "0.0.3",
+  "version": "1.0.5",
   "description": "",
   "main": "dist/index.js",
   "typings": "src/index.js",
@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/haro00/indexeddb-promise.git"
   },
-  "author": "",
+  "author": "shijie",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/haro00/indexeddb-promise/issues"

@@ -58,10 +58,12 @@ const db = new IndexedDB('yourDatabaseName');
 * index: 必选. 索引名
 * start: 可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
 * end: 可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start不传即可
-* page: 可选. 页码, Number
-* num: 可选. 每页有多少条数据, Number, 默认0, 查询分页数据必选
+* page: 可选. 页码, Number, 查询分页数据必选且大于0
+* num: 可选. 每页有多少条数据, Number, 默认0, 查询分页数据必选且大于0
 
-通过游标来获取指定索引跟范围的值,成功会resolve查到的数据及其总数,格式为: 
+通过游标来获取指定索引跟范围的值: 
+如果不查询分页,成功会resolve查到的数据(Array); 
+如果查询分页,成功会resolve查到的数据及其总数,格式为: 
 ```
 {
     total: Number,  // 总数
