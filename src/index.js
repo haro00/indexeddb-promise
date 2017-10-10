@@ -113,7 +113,7 @@ export default class IndexedDB {
      * @param keyPath   可选. 主键名, 如果有传入, 那么对应每条数据必须为包含keyPath属性的对象
      * @returns {Promise}
      */
-    addStore(store, index, replace = false, keyPath = '') {
+    addStore(store, index, replace = false, keyPath) {
         return new Promise(async (resolve, reject) => {
             if (!store) {
                 reject(`The first param can't be empty!`)
@@ -231,32 +231,84 @@ export default class IndexedDB {
     }
 
     /**
-     * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据(Array), 如果查询分页会resolve({total: 总条数, list: 数据})
+     * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据(Array)
      * 对有建立索引的objectStore, 建议使用游标来查询
      * @param store   必选. 需要查询数据的objectStore名
      * @param index  必选. 索引名
      * @param start  可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
-     * @param end  可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start不传即可
-     * @param page 可选. 页码, Number
-     * @param num 可选. 每页有多少条数据, Number
+     * @param end  可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start传入undefined或start传入结束值,同时end传入false
+     * @param direction 可选, 默认next. 光标的遍历方向, 值为以下4个: 'next'(下一个),'nextunique'(下一个不包括重复值),'prev'(上一个),'prevunique'(上一个不包括重复值)
      * @returns {Promise}
      */
-    find({store, index, start, end, page, num = 0}) {
+    find(store, index, start, end, direction) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readonly');
                 const objectStore = transaction.objectStore(store);
                 const indexObj = objectStore.index(index);
-                let request = indexObj.openCursor(this._getRange(start, end));
-                let requestCount = objectStore.count(this._getRange(start, end));
+                let range = this._getRange(start, end);
+                const directionArr = ['next', 'nextunique', 'prev', 'prevunique'];
+                if (!directionArr.includes(direction)) {
+                    direction = 'next';
+                }
+                let request = indexObj.openCursor(range, direction);
+                let result = [];
+                request.onsuccess = e => {
+                    let cursor = e.target.result;
+                    if (cursor) {
+                        result.push(cursor.value);
+                        cursor.continue();
+                    } else {
+                        this.close();
+                        resolve(result);
+                    }
+                };
+            }
+            catch
+                (err) {
+                reject(err);
+            }
+        });
+    }
+
+    /**
+     * 通过游标来获取指定索引跟范围的值,成功会resolve({total: Number //总条数, list: Array //列表数据})
+     * @param store   必选. 需要查询数据的objectStore名
+     * @param index  必选. 索引名
+     * @param start  可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
+     * @param end  可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start不传即可
+     * @param page 可选, 默认1. 页码, Number
+     * @param num 可选, 默认10. 每页有多少条数据, Number
+     * @param direction 可选, 光标的遍历方向, 值为以下4个: 'next'(下一个),'nextunique'(下一个不包括重复值),'prev'(上一个),'prevunique'(上一个不包括重复值)
+     * @returns {Promise}
+     */
+    findPage({store, index, start, end, page = 1, num = 10, direction}) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                page = parseInt(page);
+                num = parseInt(num);
+                if (isNaN(page) || isNaN(num) || page < 1 || num < 1) {
+                    reject('The page and num parameters must be number and greater than 0');
+                }
+                const db = await this._open(store);
+                const transaction = db.transaction([store], 'readonly');
+                const objectStore = transaction.objectStore(store);
+                const indexObj = objectStore.index(index);
+                let range = this._getRange(start, end);
+                const directionArr = ['next', 'nextunique', 'prev', 'prevunique'];
+                if (!directionArr.includes(direction)) {
+                    direction = 'next';
+                }
+                let request = indexObj.openCursor(range, direction);
+                let requestCount = indexObj.count();
                 let total = 0;
                 requestCount.onerror = e => {
                     reject(e.target.error);
                 };
                 requestCount.onsuccess = e => {
                     total = e.target.result;
-                    if (page && total <= num * (Number(page) - 1)) {
+                    if (total <= num * (page - 1)) {
                         this.close();
                         resolve({
                             total,
@@ -264,40 +316,23 @@ export default class IndexedDB {
                         });
                     }
                 };
-                if (typeof page === 'number' && page > 0 && typeof num === 'number' && num > 0) {
-                    let cursorNum = 0;
-                    let list = [];
-                    request.onsuccess = e => {
-                        let cursor = e.target.result;
-                        cursorNum++;
-                        if (cursor && cursorNum <= page * num) {
-                            if (cursorNum > num * (page - 1)) {
-                                list.push(cursor.value);
-                            }
-                            cursor.continue();
-                        } else {
-                            this.close();
-                            resolve({
-                                total,
-                                list
-                            });
-                        }
-                    };
-                } else {
-                    let list = [];
-                    request.onsuccess = e => {
-                        let cursor = e.target.result;
-                        if (cursor) {
+                let cursorNum = 0;
+                let list = [];
+                request.onsuccess = e => {
+                    let cursor = e.target.result;
+                    cursorNum++;
+                    if (cursor && cursorNum <= page * num) {
+                        if (cursorNum > num * (page - 1)) {
                             list.push(cursor.value);
-                            cursor.continue();
-                        } else {
-                            this.close();
-                            resolve(list);
                         }
-                    };
-                }
-                request.onerror = e => {
-                    reject(e.target.error);
+                        cursor.continue();
+                    } else {
+                        this.close();
+                        resolve({
+                            total,
+                            list
+                        });
+                    }
                 };
             }
             catch
@@ -322,7 +357,6 @@ export default class IndexedDB {
                 const objectStore = transaction.objectStore(store);
 
                 let request = objectStore.count(this._getRange(start, end));
-                let result = [];
                 request.onerror = e => {
                     reject(e.target.error);
                 };

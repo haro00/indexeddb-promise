@@ -38,7 +38,7 @@ const db = new IndexedDB('yourDatabaseName');
 #### db.addStore(store, index, replace, keyPath)
 
 * store: 必选. 需要创建的objectStore的名字
-* index: 可选. 需要创建objectStore索引时传入,key为字段名,value为boolean表示是否允许重复
+* index: 可选, Object. 需要创建objectStore索引时传入,key为字段名,value为boolean表示是否允许重复
 * replace: 可选. 如果objectStore存在否先删除再创建, 默认不删除不创建
 * keyPath: 可选. 主键名, 如果有传入, 那么对应每条数据必须为包含keyPath属性的对象
 
@@ -52,7 +52,21 @@ const db = new IndexedDB('yourDatabaseName');
 
 根据主键值key来获取数据, resolve查到的数据
 
-#### db.find({store, index, start, end, page, num})
+#### db.find(store, index, start, end, direction)
+
+* store: 必选. 需要查询数据的objectStore名
+* index: 必选. 索引名
+* start: 可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
+* end: 可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start传入undefined或start传入结束值,同时end传入false
+* page: 可选. 页码, Number, 查询分页数据必选且大于0
+* num: 可选. 每页有多少条数据, Number, 默认0, 查询分页数据必选且大于0
+* direction: 可选, 光标的遍历方向, 值为以下4个: 'next'(下一个),'nextunique'(下一个不包括重复值),'prev'(上一个),'prevunique'(上一个不包括重复值)
+
+通过游标来获取指定索引跟范围的值, 成功会resolve查到的数据
+ 
+对有建立索引的objectStore, 建议使用游标来查询
+
+#### db.findPage({store, index, start, end, page, num, direction})
 
 * store: 必选. 需要查询数据的objectStore名
 * index: 必选. 索引名
@@ -60,18 +74,9 @@ const db = new IndexedDB('yourDatabaseName');
 * end: 可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start不传即可
 * page: 可选. 页码, Number, 查询分页数据必选且大于0
 * num: 可选. 每页有多少条数据, Number, 默认0, 查询分页数据必选且大于0
+* direction: 可选, 光标的遍历方向, 值为以下4个: 'next'(下一个),'nextunique'(下一个不包括重复值),'prev'(上一个),'prevunique'(上一个不包括重复值)
 
-通过游标来获取指定索引跟范围的值: 
-如果不查询分页,成功会resolve查到的数据(Array); 
-如果查询分页,成功会resolve查到的数据及其总数,格式为: 
-```
-{
-    total: Number,  // 总数
-    list: Array  // 列表数据
-}
-```
- 
-对有建立索引的objectStore, 建议使用游标来查询
+可选参数较多, 使用对象传参. 通过游标来获取指定索引跟范围的分页数据, 成功会resolve({total: Number //总条数, list: Array //列表数据})
 
 #### db.count(store, start, end)
 
