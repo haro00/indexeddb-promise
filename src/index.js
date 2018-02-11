@@ -6,17 +6,19 @@
  */
 
 export default class IndexedDB {
-
+    
     constructor(name) {
-        // 数据库名
         this.database = name;
-        // 数据库对象
-        this.DB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
-        // 游标范围
-        this.IDBKeyRange = window.IDBKeyRange || window.mozIDBKeyRange || window.webkitIDBKeyRange || window.msIDBKeyRange;
-        // 数据库实例
-        this.db = null;
     }
+    
+    // 数据库名
+    database = '';
+    // 数据库对象
+    DB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+    // 游标范围
+    IDBKeyRange = window.IDBKeyRange || window.mozIDBKeyRange || window.webkitIDBKeyRange || window.msIDBKeyRange;
+    // 数据库实例
+    db = null;
 
     /**
      * 判断浏览器是否支持indexedDB, 返回boolean

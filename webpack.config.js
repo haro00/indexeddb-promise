@@ -18,9 +18,9 @@ module.exports = {
     plugins: [
         new CleanPlugin(STATIC_DIST),
         new webpack.DefinePlugin({
-            __SERVER__: true,
-            __DEVELOPMENT__: true,
-            __DEVTOOLS__: true,
+            __SERVER__: false,
+            __DEVELOPMENT__: false,
+            __DEVTOOLS__: false,
             'process.env': {
                 BABEL_ENV: JSON.stringify('production'),
                 NODE_ENV: JSON.stringify('production')
