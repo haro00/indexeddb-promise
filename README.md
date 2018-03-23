@@ -58,8 +58,6 @@ const db = new IndexedDB('yourDatabaseName');
 * index: 必选. 索引名
 * start: 可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
 * end: 可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start传入undefined或start传入结束值,同时end传入false
-* page: 可选. 页码, Number, 查询分页数据必选且大于0
-* num: 可选. 每页有多少条数据, Number, 默认0, 查询分页数据必选且大于0
 * direction: 可选, 光标的遍历方向, 值为以下4个: 'next'(下一个),'nextunique'(下一个不包括重复值),'prev'(上一个),'prevunique'(上一个不包括重复值)
 
 通过游标来获取指定索引跟范围的值, 成功会resolve查到的数据
@@ -80,17 +78,18 @@ const db = new IndexedDB('yourDatabaseName');
 
 #### db.count(store, start, end)
 
-* store: 必选. 需要删除数据的objectStore名
+* store: 必选. 需要统计数据的objectStore名
 * start: 可选. 索引的起始值, 查询表中所有数据start和end都不传即可; 只查询大于start的数据, end不传即可
 * end: 可选. 索引结束值, 只查单个索引,传入跟start相同的值即可;查询所有小于end的数据, start传入undefined或start传入结束值,同时end传入false
 
 查询objectStore中的数据总条数
 
-#### db.set(store, val, key)
+#### db.set(store, val, key, arrSpread)
 
 * store: 必选. 需要添加/修改数据的objectStore名
 * val: 必选. 添加/修改的数据, 如果为数组会遍历该数组, 每个元素作为一条数据进行添加/修改. 如果添加objectStore有指定主键,那么val必须为包含主键属性的对象或数组中每个元素都为为包含主键属性的对象
 * key: 如果有指定keyPath, 该值会被忽略, 否则必选. 如果val为对象或数组中元素为对象, 可以是其中的属性名
+* arrSpread: 可选, 默认为true. 数组是否遍历后存储
 
 添加/修改数据, 成功会resolve添加/修改的key
 

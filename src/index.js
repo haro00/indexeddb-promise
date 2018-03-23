@@ -406,15 +406,16 @@ export default class IndexedDB {
      * @param store  必选. 需要添加/修改数据的objectStore名
      * @param val  必选. 添加/修改的数据, 如果为数组会遍历该数组, 每个元素作为一条数据进行添加/修改. 如果添加objectStore有指定主键,那么val必须为包含主键属性的对象或数组中每个元素都为为包含主键属性的对象
      * @param key  如果有指定keyPath, 该值会被忽略, 否则必选. 如果val为对象或数组中元素为对象, 可以是其中的属性名
+     * @param arrSpread 数组是否遍历后存储
      * @returns {Promise}
      */
-    set(store, val, key) {
+    set(store, val, key, arrSpread = true) {
         return new Promise(async (resolve, reject) => {
             try {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readwrite');
                 const objectStore = transaction.objectStore(store);
-                if (Object.prototype.toString.call(val) === '[object Array]') {
+                if (Object.prototype.toString.call(val) === '[object Array]' && arrSpread) {
                     let result = [];
                     for (let item of val) {
                         result.push(await this._set(objectStore, item, key));

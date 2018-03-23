@@ -4,7 +4,6 @@ const CleanPlugin = require('clean-webpack-plugin');
 const STATIC_DIST = path.join(process.cwd(), '/dist');
 
 module.exports = {
-
     entry: [
         path.join(process.cwd(), '/src/index.js')
     ],
@@ -22,7 +21,6 @@ module.exports = {
             __DEVELOPMENT__: false,
             __DEVTOOLS__: false,
             'process.env': {
-                BABEL_ENV: JSON.stringify('production'),
                 NODE_ENV: JSON.stringify('production')
             },
         }),
