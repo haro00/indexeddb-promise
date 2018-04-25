@@ -40,7 +40,7 @@ const db = new IndexedDB('yourDatabaseName');
 * store: 必选. 需要创建的objectStore的名字
 * index: 可选, Object. 需要创建objectStore索引时传入,key为字段名,value为boolean表示是否允许重复
 * replace: 可选. 如果objectStore存在否先删除再创建, 默认不删除不创建
-* keyPath: 可选. 主键名, 如果有传入, 那么对应每条数据必须为包含keyPath属性的对象
+* keyPath: 可选. 主键名, 对应每条数据必须为包含keyPath属性的对象; 不传则使用主键自增(默认从1开始, 如果之前有number类型的主键, 会去掉最大一个number类型主键的小数然后加1作为自增后的主键)
 
 创建objectStore, 建议使用索引
 
@@ -88,7 +88,7 @@ const db = new IndexedDB('yourDatabaseName');
 
 * store: 必选. 需要添加/修改数据的objectStore名
 * val: 必选. 添加/修改的数据, 如果为数组会遍历该数组, 每个元素作为一条数据进行添加/修改. 如果添加objectStore有指定主键,那么val必须为包含主键属性的对象或数组中每个元素都为为包含主键属性的对象
-* key: 如果有指定keyPath, 该值会被忽略, 否则必选. 如果val为对象或数组中元素为对象, 可以是其中的属性名
+* key: 如果有指定keyPath, 该值会被忽略. 如果val为对象或数组中元素为对象, 可以是其中的属性名
 * arrSpread: 可选, 默认为true. 数组是否遍历后存储
 
 添加/修改数据, 成功会resolve添加/修改的key

@@ -19,7 +19,17 @@ export default class IndexedDB {
     IDBKeyRange = window.IDBKeyRange || window.mozIDBKeyRange || window.webkitIDBKeyRange || window.msIDBKeyRange;
     // 数据库实例
     db = null;
-
+    
+    /**
+     * 判断类型
+     * @param val
+     * @returns {string}
+     * @private
+     */
+    _typeof(val) {
+        return Object.prototype.toString.call(val);
+    }
+    
     /**
      * 判断浏览器是否支持indexedDB, 返回boolean
      * @returns {boolean}
@@ -32,7 +42,7 @@ export default class IndexedDB {
             return false;
         }
     }
-
+    
     /**
      * 删除数据库
      * @returns {Promise}
@@ -49,7 +59,7 @@ export default class IndexedDB {
             };
         })
     }
-
+    
     /**
      * 打开数据库,传入store判断objectStore是否存在
      * @param store
@@ -76,7 +86,7 @@ export default class IndexedDB {
             };*/
         });
     }
-
+    
     /**
      * 关闭数据库
      */
@@ -86,7 +96,7 @@ export default class IndexedDB {
             this.db = null;
         }
     }
-
+    
     /**
      * 判断数据库中是否存在objectStore
      * @param store
@@ -106,16 +116,16 @@ export default class IndexedDB {
             };
         });
     }
-
+    
     /**
      * 创建objectStore, 建议使用索引
      * @param store  必选. 需要创建的objectStore的名字
      * @param index  可选. 需要创建objectStore索引时传入,key为字段名,value为boolean表示是否允许重复
      * @param replace  可选. 如果表存在是否先删除再创建, 默认不删除不创建
-     * @param keyPath   可选. 主键名, 如果有传入, 那么对应每条数据必须为包含keyPath属性的对象
+     * @param key   可选. 主键名, 对应每条数据必须为包含keyPath属性的对象; 不传则使用主键自增(默认从1开始, 如果之前有number类型的主键, 会去掉最大一个number类型主键的小数然后加1作为自增后的主键)
      * @returns {Promise}
      */
-    addStore(store, index, replace = false, keyPath) {
+    addStore(store, index, replace = false, key) {
         return new Promise(async (resolve, reject) => {
             if (!store) {
                 reject(`The first param can't be empty!`)
@@ -130,8 +140,8 @@ export default class IndexedDB {
                     }
                     db.deleteObjectStore(store);
                 }
-                let objectStore = keyPath ? db.createObjectStore(store, {keyPath}) : db.createObjectStore(store);
-                if (Object.prototype.toString.call(index) === '[object Object]') {
+                let objectStore = key ? db.createObjectStore(store, {keyPath: key}) : db.createObjectStore(store, {autoIncrement: true});
+                if (this._typeof(index) === '[object Object]') {
                     for (let key in index) {
                         if (index.hasOwnProperty(key)) {
                             objectStore.createIndex(key, key, {unique: !!index[key]});
@@ -152,7 +162,7 @@ export default class IndexedDB {
             };*/
         });
     }
-
+    
     /**
      * 删除objectStore
      * @param store
@@ -181,7 +191,7 @@ export default class IndexedDB {
             };*/
         });
     }
-
+    
     /**
      * 返回游标范围
      * @param start  索引的起始值
@@ -204,7 +214,7 @@ export default class IndexedDB {
         }
         return end === start ? this.IDBKeyRange.only(start) : this.IDBKeyRange.bound(start, end);
     }
-
+    
     /**
      * 根据主键值key来获取数据, resolve查到的数据
      * @param store
@@ -231,7 +241,7 @@ export default class IndexedDB {
             }
         });
     }
-
+    
     /**
      * 通过游标来获取指定索引跟范围的值,成功会resolve查到的数据(Array)
      * 对有建立索引的objectStore, 建议使用游标来查询
@@ -259,6 +269,8 @@ export default class IndexedDB {
                 request.onsuccess = e => {
                     let cursor = e.target.result;
                     if (cursor) {
+                        // console.log(cursor)
+                        // result.push({primaryKey: cursor.primaryKey, ...cursor.value});
                         result.push(cursor.value);
                         cursor.continue();
                     } else {
@@ -273,7 +285,7 @@ export default class IndexedDB {
             }
         });
     }
-
+    
     /**
      * 通过游标来获取指定索引跟范围的值,成功会resolve({total: Number //总条数, list: Array //列表数据})
      * @param store   必选. 需要查询数据的objectStore名
@@ -343,7 +355,7 @@ export default class IndexedDB {
             }
         });
     }
-
+    
     /**
      * 查询objectStore中的数据总条数
      * @param store  必选. 需要查询数据的objectStore名
@@ -357,7 +369,7 @@ export default class IndexedDB {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readonly');
                 const objectStore = transaction.objectStore(store);
-
+                
                 let request = objectStore.count(this._getRange(start, end));
                 request.onerror = e => {
                     reject(e.target.error);
@@ -371,7 +383,7 @@ export default class IndexedDB {
             }
         });
     }
-
+    
     /**
      * 添加/修改数据, 成功会resolve添加/修改的key
      * @param objectStore
@@ -382,16 +394,17 @@ export default class IndexedDB {
      */
     _set(objectStore, val, key) {
         return new Promise(async (resolve, reject) => {
-            let request = null;
+            let _key = key;
             if (objectStore.keyPath === null) {
-                request = Object.prototype.toString.call(val) === '[object Object]' && Reflect.has(val, key) ? objectStore.put(val, val[key]) : objectStore.put(val, key);
+                _key = this._typeof(val) === '[object Object]' && Reflect.has(val, key) ? val[key] : key;
             } else {
-                if (Object.prototype.toString.call(val) === '[object Object]' && Reflect.has(val, objectStore.keyPath)) {
-                    request = objectStore.put(val);
+                if (this._typeof(val) === '[object Object]' && Reflect.has(val, objectStore.keyPath)) {
+                    _key = undefined;
                 } else {
-                    reject(`The object store uses in-line keys and the key parameter was provided`);
+                    return reject(`The object store uses in-line keys and the key parameter was provided`);
                 }
             }
+            let request = _key ? objectStore.put(val, _key) : objectStore.put(val);
             request.onsuccess = e => {
                 resolve(e.target.result);
             };
@@ -400,12 +413,12 @@ export default class IndexedDB {
             };
         });
     }
-
+    
     /**
      * 添加/修改数据, 成功会resolve添加/修改的key
      * @param store  必选. 需要添加/修改数据的objectStore名
      * @param val  必选. 添加/修改的数据, 如果为数组会遍历该数组, 每个元素作为一条数据进行添加/修改. 如果添加objectStore有指定主键,那么val必须为包含主键属性的对象或数组中每个元素都为为包含主键属性的对象
-     * @param key  如果有指定keyPath, 该值会被忽略, 否则必选. 如果val为对象或数组中元素为对象, 可以是其中的属性名
+     * @param key  可选. 如果有指定keyPath, 该值会被忽略. 如果val为对象或数组中元素为对象, 可以是其中的属性名
      * @param arrSpread 数组是否遍历后存储
      * @returns {Promise}
      */
@@ -415,7 +428,7 @@ export default class IndexedDB {
                 const db = await this._open(store);
                 const transaction = db.transaction([store], 'readwrite');
                 const objectStore = transaction.objectStore(store);
-                if (Object.prototype.toString.call(val) === '[object Array]' && arrSpread) {
+                if (this._typeof(val) === '[object Array]' && arrSpread) {
                     let result = [];
                     for (let item of val) {
                         result.push(await this._set(objectStore, item, key));
@@ -432,7 +445,7 @@ export default class IndexedDB {
             }
         });
     }
-
+    
     /**
      * 删除objectStore中的数据, 成功会resolve('done')
      * @param store  必选. 需要删除数据的objectStore名
@@ -459,7 +472,7 @@ export default class IndexedDB {
             }
         });
     }
-
+    
     /**
      * 清空objectStore中的数据, 成功会resolve('done')
      * @param store
