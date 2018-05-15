@@ -4,11 +4,22 @@ IndexedDB的所有操作都是异步的，API都是在回调函数中执行的�
 
 ## 1. 安装
 
+#### npm包
+
 ```
 // use npm
 npm install --save-dev indexeddb-promise
 // use yarn
 yarn add --dev indexeddb-promise
+
+```
+
+#### script引入
+
+`IndexedDB` 会被注册为一个全局变量。建议链接到一个可以手动更新的指定版本号：
+
+```
+<script src="https://cdn.jsdelivr.net/npm/indexeddb-promise@1.1.0/dist/index.js"></script>
 ```
 
 ## 2. 使用
