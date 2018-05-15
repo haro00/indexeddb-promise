@@ -4,7 +4,7 @@
  * 1. 所有的数据库操作都是异步的!!!必须处理好异步,否则会造成某一操作的数据库版本过时!!!
  * 2. 建议耗时的操作在webWorker中进行
  */
-class IndexedDB {
+export default class IndexedDB {
 	constructor(name) {
 		this.database = name;
 	}
@@ -496,5 +496,3 @@ class IndexedDB {
 		});
 	}
 }
-
-module.exports = IndexedDB;
