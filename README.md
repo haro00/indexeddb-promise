@@ -19,7 +19,7 @@ yarn add --dev indexeddb-promise
 `IndexedDB` 会被注册为一个全局变量。建议链接到一个可以手动更新的指定版本号：
 
 ```
-<script src="https://cdn.jsdelivr.net/npm/indexeddb-promise@1.1.0/dist/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/indexeddb-promise@1.1.1/dist/index.js"></script>
 ```
 
 ## 2. 使用
