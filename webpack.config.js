@@ -9,8 +9,9 @@ module.exports = {
     ],
     output: {
         path: STATIC_DIST,
-        libraryTarget: 'commonjs2',
-        filename: 'index.js'
+        filename: 'index.js',
+        library: 'IndexedDB',
+        libraryTarget: 'umd'
     },
     devtool: false,
     cache: false,
